@@ -1,55 +1,12 @@
 
-name: Android APK Build
-
-on:
-  workflow_dispatch:
-  push:
-    branches: [main]
-
-jobs:
-  build:
-    runs-on: ubuntu-22.04
-
-    steps:
-      - name: Get source code
-        uses: actions/checkout@v4
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Install system packages
+      - name: Install AIDL
         run: |
-          sudo apt-get update
-          sudo apt-get install -y git zip unzip python3-pip python3-venv autoconf libtool pkg-config zlib1g-dev libncurses5-dev cmake libffi-dev libssl-dev
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
-        with:
-          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
-
-      - name: Add AIDL to PATH
-        run: |
-          echo "$ANDROID_HOME/build-tools/35.0.0" >> "$GITHUB_PATH"
-          test -x "$ANDROID_HOME/build-tools/35.0.0/aidl"
-          which aidl
-
-      - name: Setup Python environment
-        run: |
-          python3 -m venv .venv
-          source .venv/bin/activate
-          pip install --upgrade pip setuptools
-          pip install buildozer cython==0.29.33
-
-      - name: Build APK
-        run: |
-          source .venv/bin/activate
-          buildozer android debug
-
-      - name: Save APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: ResadHalife-APK
-          path: bin/*.apk
+          sdkmanager --install "build-tools;35.0.0"
+          AIDL_PATH=$(find "$ANDROID_HOME/build-tools" -type f -name aidl | head -n 1)
+          if [ -z "$AIDL_PATH" ]; then
+            echo "AIDL not found"
+            exit 1
+          fi
+          echo "$(dirname "$AIDL_PATH")" >> "$GITHUB_PATH"
+          chmod +x "$AIDL_PATH"
+          "$AIDL_PATH" --version
